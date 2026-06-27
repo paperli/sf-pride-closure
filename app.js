@@ -3,12 +3,7 @@
   "use strict";
 
   /* ---------- Time helpers ---------- */
-  // Current "hours since origin" using real Pacific time.
-  function nowHours() {
-    return (Date.now() - ORIGIN_UTC) / 3600000;
-  }
-  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  // Format an hours-since-origin value into a friendly Pacific label.
+  function nowHours() { return (Date.now() - ORIGIN_UTC) / 3600000; }
   function fmtHour(h) {
     const d = new Date(ORIGIN_UTC + h * 3600000);
     const parts = new Intl.DateTimeFormat("en-US", {
@@ -17,48 +12,64 @@
     const get = t => (parts.find(p => p.type === t) || {}).value || "";
     return `${get("weekday")} ${get("hour")}:${get("minute")} ${get("dayPeriod")}`;
   }
-
   function statusOf(c, h) {
     if (h < c.startHour) return "upcoming";
     if (h >= c.reopenHour) return "reopened";
     return "active";
   }
+  function phaseLabel(h) {
+    if (h < CLOSURES.reduce((m, c) => Math.min(m, c.startHour), Infinity)) return "Before any closures";
+    if (h >= 102) return "All streets reopened";
+    if (h >= 81.5 && h < 90) return "🏳️‍🌈 Parade route closed";
+    if (h >= 72) return "Parade-day closures in effect";
+    return "Civic Center festival closures";
+  }
 
   /* ---------- Map ---------- */
   const map = L.map("map", { zoomControl: true, scrollWheelZoom: true })
-    .setView([37.7798, -122.4172], 15);
+    .setView([37.784, -122.41], 14);
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    maxZoom: 20,
+  }).addTo(map);
 
-  L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
-    {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 20,
-    }
-  ).addTo(map);
-
-  // Each closure -> {casing, line} polylines, plus bounds for "fit".
   const allBounds = L.latLngBounds([]);
-  const layers = CLOSURES.map(c => {
-    c.path.forEach(p => allBounds.extend(p));
-    const casing = L.polyline(c.path, {
-      color: "#16131f", weight: 11, opacity: 0.18, lineCap: "round", lineJoin: "round",
-    }).addTo(map);
-    const line = L.polyline(c.path, {
-      color: c.color, weight: 7, opacity: 0.95, lineCap: "round", lineJoin: "round",
-    }).addTo(map);
 
-    const popup = `
+  function popupHtml(c) {
+    return `
       <div class="popup__street">${c.street}</div>
       <div class="popup__seg">${c.fromTo}</div>
       <div class="popup__row">Closes: <b>${c.startLabel}</b></div>
       <div class="popup__row">Reopens: <b>${c.reopenLabel}</b></div>
       ${c.note ? `<div class="popup__row" style="margin-top:6px;color:var(--ink-500)">${c.note}</div>` : ""}`;
-    line.bindPopup(popup);
-    casing.bindPopup(popup);
-    return { c, casing, line };
+  }
+
+  const layers = CLOSURES.map(c => {
+    c.path.forEach(p => allBounds.extend(p));
+    const casing = L.polyline(c.path, {
+      color: "#16131f", weight: c.rainbow ? 14 : 11, opacity: 0.18, lineCap: "round", lineJoin: "round",
+    }).addTo(map);
+
+    let lines;
+    if (c.rainbow) {
+      // one colored sub-line per path segment, cycling the flag palette
+      lines = [];
+      for (let i = 0; i < c.path.length - 1; i++) {
+        lines.push(L.polyline([c.path[i], c.path[i + 1]], {
+          color: RAINBOW[i % RAINBOW.length], weight: 9, opacity: 0.95, lineCap: "round",
+        }).addTo(map));
+      }
+    } else {
+      lines = [L.polyline(c.path, {
+        color: c.color, weight: 7, opacity: 0.95, lineCap: "round", lineJoin: "round",
+      }).addTo(map)];
+    }
+    const html = popupHtml(c);
+    casing.bindPopup(html);
+    lines.forEach(l => l.bindPopup(html));
+    return { c, casing, lines };
   });
-  map.fitBounds(allBounds, { padding: [50, 50] });
+  map.fitBounds(allBounds, { padding: [40, 40] });
 
   /* ---------- DOM refs ---------- */
   const slider = document.getElementById("timeline-slider");
@@ -70,49 +81,56 @@
   const chips = Array.from(document.querySelectorAll(".chip"));
   const playBtn = document.getElementById("play-btn");
 
-  /* ---------- Closure list (built once) ---------- */
-  const rows = layers.map(({ c }) => {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.className = "closure";
-    btn.innerHTML = `
-      <span class="closure__rail" style="background:${c.color}"></span>
-      <span class="closure__main">
-        <span class="closure__street">${c.street}</span>
-        <span class="closure__seg">${c.fromTo}</span>
-        <span class="closure__time">Closes ${c.startLabel.replace("Fri, Jun 26 · ", "Fri ").replace("Fri, Jun 26 (time not specified)", "Fri (time TBD)")}</span>
-      </span>
-      <span class="closure__badge"></span>`;
-    btn.addEventListener("click", () => {
-      map.fitBounds(L.latLngBounds(c.path).pad(0.6));
-      const lyr = layers.find(l => l.c === c);
-      lyr.line.openPopup();
+  /* ---------- Closure list (grouped by category) ---------- */
+  const rows = [];
+  Object.keys(CATS).forEach(catKey => {
+    const inCat = layers.filter(l => l.c.cat === catKey);
+    if (!inCat.length) return;
+    const head = document.createElement("li");
+    head.className = "group";
+    head.innerHTML = `<span>${CATS[catKey].label}</span><span class="group__sub">${CATS[catKey].sub}</span>`;
+    listEl.appendChild(head);
+
+    inCat.forEach(({ c }) => {
+      const li = document.createElement("li");
+      const btn = document.createElement("button");
+      btn.className = "closure";
+      const swatch = c.rainbow
+        ? `<span class="closure__rail closure__rail--rainbow"></span>`
+        : `<span class="closure__rail" style="background:${c.color}"></span>`;
+      btn.innerHTML = `
+        ${swatch}
+        <span class="closure__main">
+          <span class="closure__street">${c.street}</span>
+          <span class="closure__seg">${c.fromTo}</span>
+          <span class="closure__time">Closes ${c.startLabel}</span>
+        </span>
+        <span class="closure__badge"></span>`;
+      btn.addEventListener("click", () => {
+        map.fitBounds(L.latLngBounds(c.path).pad(0.4));
+        const lyr = layers.find(l => l.c === c);
+        lyr.lines[0].openPopup();
+      });
+      li.appendChild(btn);
+      listEl.appendChild(li);
+      rows.push({ c, btn, badge: btn.querySelector(".closure__badge") });
     });
-    li.appendChild(btn);
-    listEl.appendChild(li);
-    return { c, btn, badge: btn.querySelector(".closure__badge") };
   });
 
-  /* ---------- Render for a given hour ---------- */
+  /* ---------- Render ---------- */
   const STYLE = {
-    active:   { weight: 7, opacity: 0.95, dashArray: null, casing: 0.18 },
-    upcoming: { weight: 4, opacity: 0.4,  dashArray: "2 9", casing: 0.05 },
-    reopened: { weight: 3, opacity: 0.18, dashArray: null, casing: 0.0 },
+    active:   { mul: 1,    opacity: 0.95, dashArray: null, casing: 0.18 },
+    upcoming: { mul: 0.6,  opacity: 0.4,  dashArray: "2 9", casing: 0.05 },
+    reopened: { mul: 0.45, opacity: 0.16, dashArray: null, casing: 0.0 },
   };
   const BADGE = { active: "Closed", upcoming: "Upcoming", reopened: "Reopened" };
 
-  function phaseLabel(h) {
-    if (h < 0.017) return "Before any closures";
-    if (h >= 78) return "All streets reopened";
-    if (h >= 58.5 && h < 62) return "🏳️‍🌈 Parade in progress";
-    return "Closures in effect";
-  }
-
   function render(h) {
-    layers.forEach(({ c, line, casing }) => {
+    layers.forEach(({ c, lines, casing }) => {
       const st = statusOf(c, h);
       const s = STYLE[st];
-      line.setStyle({ weight: s.weight, opacity: s.opacity, dashArray: s.dashArray });
+      const base = c.rainbow ? 9 : 7;
+      lines.forEach(l => l.setStyle({ weight: base * s.mul, opacity: s.opacity, dashArray: s.dashArray }));
       casing.setStyle({ opacity: s.casing });
     });
 
@@ -128,9 +146,8 @@
     clockTime.textContent = fmtHour(h);
     clockPhase.textContent = phaseLabel(h);
     countPill.textContent = active + " closed";
-    liveStatus.innerHTML = `<span>At this time</span><b>${active} street${active === 1 ? "" : "s"} closed</b>`;
+    liveStatus.innerHTML = `<span>At this time</span><b>${active} closure${active === 1 ? "" : "s"} active</b>`;
 
-    // sync chip pressed-state
     chips.forEach(ch => {
       const ch_h = ch.dataset.hour !== undefined ? parseFloat(ch.dataset.hour) : null;
       ch.setAttribute("aria-pressed", ch_h !== null && Math.abs(ch_h - h) < 0.01 ? "true" : "false");
@@ -142,52 +159,44 @@
     slider.value = h;
     render(h);
     if (fromNow) {
-      const nowChip = document.querySelector(".chip--now");
       chips.forEach(c => c.setAttribute("aria-pressed", "false"));
-      nowChip.setAttribute("aria-pressed", "true");
+      document.querySelector(".chip--now").setAttribute("aria-pressed", "true");
     }
   }
 
   /* ---------- Interactions ---------- */
-  slider.addEventListener("input", () => { stopPlay(); render(parseFloat(slider.value)); chips.forEach(c => c.setAttribute("aria-pressed", "false")); });
-
-  chips.forEach(ch => {
-    ch.addEventListener("click", () => {
-      stopPlay();
-      if (ch.dataset.now) {
-        const h = Math.max(TIMELINE_MIN, Math.min(TIMELINE_MAX, nowHours()));
-        setHour(h, true);
-      } else {
-        setHour(parseFloat(ch.dataset.hour));
-      }
-    });
+  slider.addEventListener("input", () => {
+    stopPlay(); render(parseFloat(slider.value));
+    chips.forEach(c => c.setAttribute("aria-pressed", "false"));
   });
+  chips.forEach(ch => ch.addEventListener("click", () => {
+    stopPlay();
+    if (ch.dataset.now) setHour(Math.max(TIMELINE_MIN, Math.min(TIMELINE_MAX, nowHours())), true);
+    else setHour(parseFloat(ch.dataset.hour));
+  }));
 
-  /* ---------- Play (animate through the weekend) ---------- */
+  /* ---------- Play ---------- */
   let playTimer = null;
   function stopPlay() {
-    if (playTimer) { clearInterval(playTimer); playTimer = null; playBtn.classList.remove("is-playing"); playBtn.textContent = "▶ Play day-by-day"; }
+    if (playTimer) { clearInterval(playTimer); playTimer = null; playBtn.classList.remove("is-playing"); playBtn.textContent = "▶ Play the weekend"; }
   }
   playBtn.addEventListener("click", () => {
     if (playTimer) { stopPlay(); return; }
-    playBtn.classList.add("is-playing");
-    playBtn.textContent = "❚❚ Pause";
+    playBtn.classList.add("is-playing"); playBtn.textContent = "❚❚ Pause";
     let h = parseFloat(slider.value);
     if (h >= TIMELINE_MAX) h = TIMELINE_MIN;
     playTimer = setInterval(() => {
-      h += 0.75;
+      h += 1;
       if (h >= TIMELINE_MAX) { setHour(TIMELINE_MAX); stopPlay(); return; }
       setHour(h);
-    }, 60);
+    }, 55);
   });
 
-  /* ---------- Init: start at real "Now" if within the weekend, else Fri 8 PM ---------- */
+  /* ---------- Init ---------- */
+  const param = parseFloat(new URLSearchParams(location.search).get("t"));
   const liveNow = nowHours();
-  if (liveNow >= TIMELINE_MIN && liveNow <= TIMELINE_MAX) {
-    setHour(liveNow, true);
-  } else {
-    setHour(20); // Fri 8 PM — peak closure
-  }
-
+  if (!Number.isNaN(param)) setHour(param);                                  // deep-link to a time
+  else if (liveNow >= TIMELINE_MIN && liveNow <= TIMELINE_MAX) setHour(liveNow, true);
+  else setHour(82.5); // default: parade Sunday
   setTimeout(() => map.invalidateSize(), 200);
 })();

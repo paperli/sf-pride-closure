@@ -12,9 +12,8 @@
   <meta property="og:description" content="Interactive, time-aware map of Civic Center street closures for SF Pride weekend." />
   <meta property="og:type" content="website" />
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <!-- Leaflet (vendored locally for reliability) -->
+  <link rel="stylesheet" href="assets/leaflet/leaflet.css" />
   <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,9 +28,9 @@
     <div class="masthead__bar" aria-hidden="true"></div>
     <div class="masthead__inner">
       <div class="masthead__title">
-        <span class="masthead__kicker">San Francisco · June 26–29, 2026</span>
-        <h1>Pride Weekend Road Closures</h1>
-        <p class="masthead__sub">Civic Center area — drag the timeline to see what's closed, and when.</p>
+        <span class="masthead__kicker">San Francisco · June 25–29, 2026 · Parade Sun, Jun 28</span>
+        <h1>Pride Road Closures</h1>
+        <p class="masthead__sub">Parade route &amp; Civic Center — drag the timeline to see what's closed, and when.</p>
       </div>
       <div class="masthead__status" id="live-status" role="status" aria-live="polite"></div>
     </div>
@@ -55,22 +54,22 @@
         </div>
 
         <div class="card">
-          <label class="card__label" for="timeline-slider">Timeline</label>
-          <input id="timeline-slider" class="slider" type="range" min="0" max="80" step="0.25" value="20"
+          <label class="card__label" for="timeline-slider">Timeline · Thu → Mon</label>
+          <input id="timeline-slider" class="slider" type="range" min="0" max="108" step="0.25" value="82.5"
                  aria-describedby="clock-time" />
           <div class="slider__ticks" aria-hidden="true">
-            <span>Fri</span><span>Sat</span><span>Sun</span><span>Mon</span>
+            <span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span><span>Mon</span>
           </div>
           <div class="cutoffs" role="group" aria-label="Jump to a time">
             <button class="chip chip--now" data-now="1">● Now</button>
-            <button class="chip" data-hour="0.017">Fri 12:01 AM</button>
-            <button class="chip" data-hour="20">Fri 8 PM</button>
-            <button class="chip" data-hour="34.5">Sat</button>
-            <button class="chip" data-hour="58.5">Parade</button>
-            <button class="chip" data-hour="78">Reopen</button>
+            <button class="chip" data-hour="19">Thu 7 PM</button>
+            <button class="chip" data-hour="44">Fri 8 PM</button>
+            <button class="chip" data-hour="60">Sat</button>
+            <button class="chip" data-hour="82.5">Parade</button>
+            <button class="chip" data-hour="102">Reopen</button>
           </div>
           <div class="playbar">
-            <button class="play-btn" id="play-btn" aria-label="Play timeline">▶ Play day-by-day</button>
+            <button class="play-btn" id="play-btn" aria-label="Play timeline">▶ Play the weekend</button>
           </div>
         </div>
 
@@ -83,17 +82,21 @@
         </div>
 
         <div class="card card--note">
-          <p><strong>Heads up:</strong> All listed streets reopen <strong>Monday, June 29 at 6:00 AM</strong>.
-          Two segments (Fulton &amp; Grove) were listed for Friday without a specific start time.</p>
-          <p class="source">Data summarized from a KQED report on SFMTA closures. Always confirm with
-          <a href="https://www.sfmta.com/" target="_blank" rel="noopener">SFMTA</a> before you travel.</p>
+          <p><strong>Heads up:</strong> The <strong>parade</strong> runs Sunday, Jun 28 along Market St
+          (Beale → 9th), stepping off at 10:30 AM. Civic Center festival streets reopen
+          <strong>Mon, Jun 29 at 6:00 AM</strong>; most downtown parade-day closures lift around
+          <strong>5 PM Sunday</strong>. A few Friday start times and minor SoMa endpoints weren't
+          fully specified and are flagged on each closure.</p>
+          <p class="source">Cross-checked against
+          <a href="https://www.sfmta.com/project-updates/san-francisco-pride-parade" target="_blank" rel="noopener">SFMTA</a>
+          and <a href="https://www.kqed.org/news/12086888/sf-pride-2026-parade-route-times-street-closures-parking-safety-lgbtq" target="_blank" rel="noopener">KQED</a>.
+          Always confirm with SFMTA before you travel.</p>
         </div>
       </div>
     </aside>
   </main>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="assets/leaflet/leaflet.js"></script>
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>

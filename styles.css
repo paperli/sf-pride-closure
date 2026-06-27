@@ -221,6 +221,20 @@ a { color: var(--pride-blue); }
 
 /* Closure list */
 .closure-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--s-2); }
+.group {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-2);
+  margin-top: var(--s-2); padding: 0 2px;
+}
+.group:first-child { margin-top: 0; }
+.group > span:first-child {
+  font-size: var(--fs-xs); font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--ink-700);
+}
+.group__sub { font-size: 10px; color: var(--ink-500); }
+.closure__rail--rainbow {
+  background: linear-gradient(180deg, var(--pride-red), var(--pride-orange), var(--pride-yellow),
+    var(--pride-green), var(--pride-blue), var(--pride-violet)) !important;
+}
 .closure {
   display: grid; grid-template-columns: 6px 1fr auto; gap: var(--s-3); align-items: center;
   padding: var(--s-3); border: 1px solid var(--line); border-radius: var(--r-sm);
