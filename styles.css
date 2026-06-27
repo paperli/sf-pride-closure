@@ -97,8 +97,10 @@ a { color: var(--pride-blue); }
   color: var(--ink-500);
 }
 .masthead h1 {
-  font-size: var(--fs-2xl); line-height: 1.05; font-weight: 800; letter-spacing: -.02em;
-  margin: 2px 0 4px;
+  font-family: "Monoton", system-ui, sans-serif;
+  font-weight: 400; text-transform: uppercase;
+  font-size: clamp(1.5rem, 4.4vw, 2.6rem); line-height: 1.25; letter-spacing: .015em;
+  margin: 6px 0 10px;
   background: var(--pride-gradient);
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
@@ -147,6 +149,7 @@ a { color: var(--pride-blue); }
 .card {
   background: var(--surface-0); border: 1px solid var(--line);
   border-radius: var(--r-md); padding: var(--s-4); box-shadow: var(--shadow-1);
+  flex: 0 0 auto; /* never compress inside the scrolling flex column */
 }
 .card__head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-3); }
 .card__label {
