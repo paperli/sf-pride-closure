@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>SF Pride 2026 · Civic Center Road Closures</title>
+  <meta name="description" content="Interactive map of San Francisco Pride 2026 Civic Center road closures, with a time slider showing what's closed and when." />
+  <meta name="theme-color" content="#750787" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="SF Pride 2026 · Road Closures" />
+  <meta property="og:description" content="Interactive, time-aware map of Civic Center street closures for SF Pride weekend." />
+  <meta property="og:type" content="website" />
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="preconnect" href="https://basemaps.cartocdn.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23E40303'/%3E%3Cstop offset='.2' stop-color='%23FF8C00'/%3E%3Cstop offset='.4' stop-color='%23FFED00'/%3E%3Cstop offset='.6' stop-color='%23008026'/%3E%3Cstop offset='.8' stop-color='%23004DFF'/%3E%3Cstop offset='1' stop-color='%23750787'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='url(%23g)'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <a class="skip-link" href="#timeline-slider">Skip to time controls</a>
+
+  <header class="masthead">
+    <div class="masthead__bar" aria-hidden="true"></div>
+    <div class="masthead__inner">
+      <div class="masthead__title">
+        <span class="masthead__kicker">San Francisco · June 26–29, 2026</span>
+        <h1>Pride Weekend Road Closures</h1>
+        <p class="masthead__sub">Civic Center area — drag the timeline to see what's closed, and when.</p>
+      </div>
+      <div class="masthead__status" id="live-status" role="status" aria-live="polite"></div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="map-wrap" aria-label="Map of road closures">
+      <div id="map"></div>
+      <div class="map-legend" aria-hidden="true">
+        <span class="map-legend__item"><i class="swatch swatch--active"></i> Closed now</span>
+        <span class="map-legend__item"><i class="swatch swatch--upcoming"></i> Closes later</span>
+        <span class="map-legend__item"><i class="swatch swatch--reopened"></i> Reopened</span>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Closure timeline and details">
+      <div class="panel__scroll">
+        <div class="card card--clock">
+          <div class="clock__time" id="clock-time">—</div>
+          <div class="clock__phase" id="clock-phase">Loading…</div>
+        </div>
+
+        <div class="card">
+          <label class="card__label" for="timeline-slider">Timeline</label>
+          <input id="timeline-slider" class="slider" type="range" min="0" max="80" step="0.25" value="20"
+                 aria-describedby="clock-time" />
+          <div class="slider__ticks" aria-hidden="true">
+            <span>Fri</span><span>Sat</span><span>Sun</span><span>Mon</span>
+          </div>
+          <div class="cutoffs" role="group" aria-label="Jump to a time">
+            <button class="chip chip--now" data-now="1">● Now</button>
+            <button class="chip" data-hour="0.017">Fri 12:01 AM</button>
+            <button class="chip" data-hour="20">Fri 8 PM</button>
+            <button class="chip" data-hour="34.5">Sat</button>
+            <button class="chip" data-hour="58.5">Parade</button>
+            <button class="chip" data-hour="78">Reopen</button>
+          </div>
+          <div class="playbar">
+            <button class="play-btn" id="play-btn" aria-label="Play timeline">▶ Play day-by-day</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card__head">
+            <h2 class="card__label">Street closures</h2>
+            <span class="count-pill" id="active-count"></span>
+          </div>
+          <ul class="closure-list" id="closure-list"></ul>
+        </div>
+
+        <div class="card card--note">
+          <p><strong>Heads up:</strong> All listed streets reopen <strong>Monday, June 29 at 6:00 AM</strong>.
+          Two segments (Fulton &amp; Grove) were listed for Friday without a specific start time.</p>
+          <p class="source">Data summarized from a KQED report on SFMTA closures. Always confirm with
+          <a href="https://www.sfmta.com/" target="_blank" rel="noopener">SFMTA</a> before you travel.</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
