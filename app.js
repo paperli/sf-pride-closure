@@ -2,6 +2,19 @@
 (function () {
   "use strict";
 
+  /* ---------- Analytics ----------
+   * Cloudflare Web Analytics (the beacon in index.html) captures pageviews,
+   * referrers, geography and Core Web Vitals automatically — it has no custom-
+   * event API. This wrapper is a no-op today, but if an events-capable provider
+   * (Umami / Plausible) is ever added it will start emitting events with no
+   * other code changes. It must never throw and break the UI. */
+  function track(name, props) {
+    try {
+      if (window.umami && typeof window.umami.track === "function") window.umami.track(name, props);
+      if (typeof window.plausible === "function") window.plausible(name, { props: props });
+    } catch (e) { /* analytics is best-effort */ }
+  }
+
   /* ---------- Time helpers ---------- */
   function nowHours() { return (Date.now() - ORIGIN_UTC) / 3600000; }
   function fmtHour(h) {
@@ -110,6 +123,7 @@
         map.fitBounds(L.latLngBounds(c.path).pad(0.4));
         const lyr = layers.find(l => l.c === c);
         lyr.lines[0].openPopup();
+        track("closure_open", { id: c.id, street: c.street });
       });
       li.appendChild(btn);
       listEl.appendChild(li);
@@ -169,10 +183,12 @@
     stopPlay(); render(parseFloat(slider.value));
     chips.forEach(c => c.setAttribute("aria-pressed", "false"));
   });
+  slider.addEventListener("change", () => track("timeline_scrub", { hour: Math.round(parseFloat(slider.value)) }));
   chips.forEach(ch => ch.addEventListener("click", () => {
     stopPlay();
     if (ch.dataset.now) setHour(Math.max(TIMELINE_MIN, Math.min(TIMELINE_MAX, nowHours())), true);
     else setHour(parseFloat(ch.dataset.hour));
+    track("cutoff", { label: ch.textContent.trim() });
   }));
 
   /* ---------- Play ---------- */
@@ -182,6 +198,7 @@
   }
   playBtn.addEventListener("click", () => {
     if (playTimer) { stopPlay(); return; }
+    track("play");
     playBtn.classList.add("is-playing"); playBtn.textContent = "❚❚ Pause";
     let h = parseFloat(slider.value);
     if (h >= TIMELINE_MAX) h = TIMELINE_MIN;
