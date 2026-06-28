@@ -157,16 +157,16 @@ a { color: var(--pride-blue); }
   color: var(--ink-500); display: block;
 }
 
-/* Clock card */
+/* Clock card — intentionally dark in BOTH themes, so colors are fixed
+   (not surface tokens, which flip in dark mode and caused dark-on-dark text). */
 .card--clock {
-  background: var(--ink-900); color: var(--surface-0); border: none; overflow: hidden; position: relative;
+  background: #16131f; color: #ffffff; border: none; overflow: hidden; position: relative;
 }
 .card--clock::after {
   content: ""; position: absolute; inset: auto 0 0 0; height: 4px; background: var(--pride-gradient);
 }
-.clock__time { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -.01em; }
-.clock__phase { font-size: var(--fs-sm); color: var(--ink-300); margin-top: 2px; }
-@media (prefers-color-scheme: dark) { .card--clock { background: #0e0c16; } }
+.clock__time { font-size: var(--fs-xl); font-weight: 800; letter-spacing: -.01em; color: #ffffff; }
+.clock__phase { font-size: var(--fs-sm); color: rgba(255, 255, 255, .72); margin-top: 2px; }
 
 /* Slider */
 .slider {
@@ -262,8 +262,12 @@ a { color: var(--pride-blue); }
 .card--note p + p { margin-top: var(--s-2); }
 .card--note .source { color: var(--ink-500); }
 
-/* Leaflet popups themed */
-.leaflet-popup-content-wrapper { border-radius: var(--r-md); box-shadow: var(--shadow-2); }
+/* Leaflet popups themed (follow light/dark so text stays readable) */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--surface-0); color: var(--ink-900);
+  border-radius: var(--r-md); box-shadow: var(--shadow-2);
+}
+.leaflet-container a.leaflet-popup-close-button { color: var(--ink-500); }
 .leaflet-popup-content { margin: 12px 14px; font-family: var(--font); }
 .popup__street { font-weight: 800; font-size: var(--fs-md); }
 .popup__seg { color: var(--ink-500); font-size: var(--fs-sm); margin: 2px 0 6px; }
