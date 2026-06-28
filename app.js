@@ -3,11 +3,10 @@
   "use strict";
 
   /* ---------- Analytics ----------
-   * Cloudflare Web Analytics (the beacon in index.html) captures pageviews,
-   * referrers, geography and Core Web Vitals automatically — it has no custom-
-   * event API. This wrapper is a no-op today, but if an events-capable provider
-   * (Umami / Plausible) is ever added it will start emitting events with no
-   * other code changes. It must never throw and break the UI. */
+   * Umami (cookieless; script in index.html) auto-tracks pageviews and accepts
+   * custom events via umami.track(). This wrapper routes our interaction events
+   * there (and to Plausible if ever added). It must never throw and break the
+   * UI, so every call is guarded. */
   function track(name, props) {
     try {
       if (window.umami && typeof window.umami.track === "function") window.umami.track(name, props);
